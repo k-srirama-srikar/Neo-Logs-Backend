@@ -3,9 +3,10 @@ package main
 import (
 	"log"
 	"os"
+	"fmt"
 
-	"/config"
-	"/routes"
+	"backend/config"
+	"backend/routes"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -19,6 +20,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
+	fmt.Println("Database connection successful!")
 	defer db.Close()
 
 	// Initialize Fiber app
