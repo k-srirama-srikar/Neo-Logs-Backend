@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	// "encoding/json"
 	"time"
 
 	"backend/models"
@@ -13,28 +12,9 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// type LoginRequest struct {
-// 	Email    string `json:"email"`
-// 	Password string `json:"password"`
-// }
+var jwtSecret = []byte("your_secret_key") // Replace with a secure value
 
-// func LoginHandler(db *pgxpool.Pool) fiber.Handler {
-// 	return func(c *fiber.Ctx) error {
-// 		var req LoginRequest
-// 		if err := c.BodyParser(&req); err != nil {
-// 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid input"})
-// 		}
-
-// 		// Mocked authentication (replace with DB check)
-// 		if req.Email == "admin@example.com" && req.Password == "password" {
-// 			token := GenerateJWT(req.Email)
-// 			return c.JSON(fiber.Map{"token": token})
-// 		}
-// 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid credentials"})
-// 	}
-// }
-
-
+// LoginHandler authenticates a user and generates a JWT token.
 func LoginHandler(db *pgxpool.Pool) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		var req struct {
@@ -45,10 +25,9 @@ func LoginHandler(db *pgxpool.Pool) fiber.Handler {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid input"})
 		}
 
-		// Fetch user from database
+		// Fetch user from the database
 		var storedPassword string
-		query := `SELECT password FROM users WHERE email = $1`
-		err := db.QueryRow(context.Background(), query, req.Email).Scan(&storedPassword)
+		err := db.QueryRow(context.Background(), "SELECT password FROM users WHERE email = $1", req.Email).Scan(&storedPassword)
 		if err != nil {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid credentials"})
 		}
@@ -61,9 +40,9 @@ func LoginHandler(db *pgxpool.Pool) fiber.Handler {
 		// Generate JWT token
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 			"email": req.Email,
-			"exp":   time.Now().Add(time.Hour * 24).Unix(),
+			"exp":   time.Now().Add(24 * time.Hour).Unix(),
 		})
-		tokenString, err := token.SignedString([]byte("your_secret_key"))
+		tokenString, err := token.SignedString(jwtSecret)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Error generating token"})
 		}
@@ -72,8 +51,7 @@ func LoginHandler(db *pgxpool.Pool) fiber.Handler {
 	}
 }
 
-
-
+// RegisterHandler registers a new user in the system.
 func RegisterHandler(db *pgxpool.Pool) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		var user models.User
@@ -86,11 +64,10 @@ func RegisterHandler(db *pgxpool.Pool) fiber.Handler {
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Error hashing password"})
 		}
-		user.Password = string(hashedPassword)
 
-		// Insert user into the database
+		// Insert the user into the database
 		query := `INSERT INTO users (name, email, password) VALUES ($1, $2, $3)`
-		_, err = db.Exec(context.Background(), query, user.Name, user.Email, user.Password)
+		_, err = db.Exec(context.Background(), query, user.Name, user.Email, string(hashedPassword))
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Error saving user"})
 		}

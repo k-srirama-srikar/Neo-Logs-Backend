@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"os"
-	"fmt"
 
 	"backend/config"
 	"backend/routes"
@@ -20,8 +19,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
-	fmt.Println("Database connection successful!")
 	defer db.Close()
+	log.Println("Database connection established successfully!")
 
 	// Initialize Fiber app
 	app := fiber.New()
@@ -34,5 +33,6 @@ func main() {
 	if port == "" {
 		port = "8000"
 	}
+	log.Printf("Server running on port %s...", port)
 	log.Fatal(app.Listen(":" + port))
 }

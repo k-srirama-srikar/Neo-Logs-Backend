@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -8,14 +9,15 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// LoadEnv loads environment variables from a .env file.
 func LoadEnv() {
 	if err := godotenv.Load(); err != nil {
-		fmt.Println("No .env file found")
+		fmt.Println("Warning: No .env file found.")
 	}
 }
 
+// ConnectDB creates and returns a PostgreSQL connection pool.
 func ConnectDB() (*pgxpool.Pool, error) {
-	LoadEnv()
 	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s",
 		os.Getenv("DB_USER"),
 		os.Getenv("DB_PASSWORD"),
@@ -23,5 +25,5 @@ func ConnectDB() (*pgxpool.Pool, error) {
 		os.Getenv("DB_PORT"),
 		os.Getenv("DB_NAME"),
 	)
-	return pgxpool.New(nil, dsn)
+	return pgxpool.New(context.Background(), dsn)
 }
