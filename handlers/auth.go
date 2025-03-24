@@ -1,13 +1,15 @@
 package handlers
 
 import (
-	"context"
-	"time"
-	"regexp"
 	"backend/models"
-	"github.com/jackc/pgx/v5/pgconn"
+	"context"
+	"fmt"
+	"regexp"
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -40,28 +42,34 @@ func isUniqueConstraintViolation(err error) bool {
 func LoginHandler(db *pgxpool.Pool) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		var req struct {
-			Email    string `json:"email"`
+			Identifier    string `json:"identifier"` // can be email or username
 			Password string `json:"password"`
 		}
 		if err := c.BodyParser(&req); err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid input"})
 		}
-
+		// fmt.Println("hello...")
 		// Fetch user from the database
-		var storedPassword string
-		err := db.QueryRow(context.Background(), "SELECT password FROM users WHERE email = $1", req.Email).Scan(&storedPassword)
+		var id int
+		var name, email, password string
+		//err := db.QueryRow(context.Background(), "SELECT password FROM users WHERE email = $1", req.Email).Scan(&storedPassword)
+		
+		query := `SELECT id, name, email, password FROM get_user_by_email($1)`
+		err := db.QueryRow(context.Background(), query, req.Identifier).Scan(&id, &name, &email, &password)
+
 		if err != nil {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid credentials"})
 		}
 
 		// Compare passwords
-		if err := bcrypt.CompareHashAndPassword([]byte(storedPassword), []byte(req.Password)); err != nil {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid credentials"})
+		if err := bcrypt.CompareHashAndPassword([]byte(password), []byte(req.Password)); err != nil {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid credentials Pass"})
 		}
 
 		// Generate JWT token
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"email": req.Email,
+			"user_id":id,
+			"email": email,
 			"exp":   time.Now().Add(24 * time.Hour).Unix(),
 		})
 		tokenString, err := token.SignedString(jwtSecret)
@@ -69,7 +77,10 @@ func LoginHandler(db *pgxpool.Pool) fiber.Handler {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Error generating token"})
 		}
 
-		return c.JSON(fiber.Map{"token": tokenString})
+		return c.JSON(fiber.Map{
+			"message": "Login Successful",
+			"token": tokenString,
+			"user": fiber.Map{"id":id, "name":name, "email":email,},})
 	}
 }
 
