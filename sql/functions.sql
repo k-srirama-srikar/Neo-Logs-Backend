@@ -1,8 +1,8 @@
 -- DROP TABLE users;
-DROP FUNCTION insert_user;
-DROP FUNCTION get_user_by_email;
-DROP FUNCTION update_user_password;
-DROP FUNCTION delete_user_by_email;
+-- DROP FUNCTION insert_user;
+-- DROP FUNCTION get_user_by_email;
+-- DROP FUNCTION update_user_password;
+-- DROP FUNCTION delete_user_by_email;
 -- Create the users table if it doesn't exist
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
@@ -55,3 +55,23 @@ BEGIN
     DELETE FROM users u WHERE u.email = _identifier OR u.name = _identifier;
 END;
 $$ LANGUAGE plpgsql;
+
+
+
+CREATE TABLE user_profiles (
+    user_id INT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    full_name VARCHAR(100),
+    bio TEXT,
+    profile_picture VARCHAR(255),
+    public BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+CREATE TABLE followers (
+    follower_id INT REFERENCES users(id) ON DELETE CASCADE,
+    following_id INT REFERENCES users(id) ON DELETE CASCADE,
+    followed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (follower_id, following_id)
+);
