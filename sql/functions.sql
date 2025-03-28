@@ -58,7 +58,7 @@ $$ LANGUAGE plpgsql;
 
 
 
-CREATE TABLE user_profiles (
+CREATE TABLE IF NOT EXISTS user_profiles (
     user_id INT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     full_name VARCHAR(100),
     bio TEXT,
@@ -69,9 +69,24 @@ CREATE TABLE user_profiles (
 );
 
 
-CREATE TABLE followers (
+CREATE TABLE IF NOT EXISTS followers (
     follower_id INT REFERENCES users(id) ON DELETE CASCADE,
     following_id INT REFERENCES users(id) ON DELETE CASCADE,
     followed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (follower_id, following_id)
+    PRIMARY KEY (follower_id, following_id),
+    CONSTRAINT unique_follow UNIQUE (follower_id, following_id)
 );
+
+CREATE OR REPLACE FUNCTION create_user_profile()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO user_profiles (user_id, full_name, bio, profile_picture, public)
+    VALUES (NEW.id, '', '', 'https://neologs.vercel.app/pfp1.jpg', TRUE);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER after_user_insert
+AFTER INSERT ON users
+FOR EACH ROW
+EXECUTE FUNCTION create_user_profile();

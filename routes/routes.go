@@ -11,6 +11,7 @@ func SetupRoutes(app *fiber.App, db *pgxpool.Pool) {
 	// Auth routes
 	app.Post("/api/login", handlers.LoginHandler(db))
 	app.Post("/api/register", handlers.RegisterHandler(db))
+	app.Get("/api/users/:username", handlers.GetUserProfileHandler(db))
 
 	// Add additional routes for posts, comments, etc.
 }

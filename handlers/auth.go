@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"regexp"
 	"time"
-
+	"net/http"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -155,5 +155,45 @@ func RegisterHandler(db *pgxpool.Pool) fiber.Handler {
 			"user":    req.Name,
 			"email":   req.Email,
 		})
+	}
+}
+
+
+
+// GetUserProfileHandler retrieves user profile based on username
+func GetUserProfileHandler(db *pgxpool.Pool) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		username := c.Params("username")
+
+		// Query to fetch user details from users and user_profiles tables
+		var user struct {
+			ID             int     `json:"id"`
+			Username       string  `json:"name"`
+			Email          string  `json:"email"`
+			FullName       *string `json:"full_name"`
+			Bio            *string `json:"bio"`
+			ProfilePicture *string `json:"profile_picture"`
+			Public         bool    `json:"public"`
+		}
+
+		query := `
+			SELECT u.id, u.name, u.email, p.full_name, p.bio, p.profile_picture, p.public
+			FROM users u
+			LEFT JOIN user_profiles p ON u.id = p.user_id
+			WHERE u.name = $1
+		`
+
+		err := db.QueryRow(context.Background(), query, username).Scan(
+			&user.ID, &user.Username, &user.Email, &user.FullName,
+			&user.Bio, &user.ProfilePicture, &user.Public,
+		)
+
+		if err != nil {
+			fmt.Printf("Error fetching user profile: %v", err)
+			return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
+		}
+
+		// Return user profile data as JSON
+		return c.JSON(user)
 	}
 }
