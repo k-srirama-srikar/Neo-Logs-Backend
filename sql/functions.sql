@@ -90,3 +90,25 @@ CREATE OR REPLACE TRIGGER after_user_insert
 AFTER INSERT ON users
 FOR EACH ROW
 EXECUTE FUNCTION create_user_profile();
+
+CREATE TABLE IF NOT EXISTS blogs (
+    id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    tags TEXT[],  -- Array of tags (e.g., ['tech', 'coding'])
+    visibility BOOLEAN DEFAULT TRUE, -- TRUE for public, FALSE for private
+    status VARCHAR(10) DEFAULT 'draft',  -- 'draft' or 'published'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS comments (
+    id SERIAL PRIMARY KEY,
+    blog_id INT REFERENCES blogs(id) ON DELETE CASCADE,
+    user_id INT REFERENCES users(id) ON DELETE CASCADE,
+    parent_comment_id INT REFERENCES comments(id) ON DELETE CASCADE, -- NULL if top-level comment
+    content TEXT NOT NULL,
+    depth INT DEFAULT 0, -- Depth of comment (0 = top-level, 1 = reply, etc.)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

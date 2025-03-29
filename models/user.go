@@ -18,3 +18,6 @@ func InsertUser(db *pgxpool.Pool, name, email, password string) error {
 	log.Printf("User inserted successfully: Name=%s, Email=%s\n", name, email)
 	return nil
 }
+
+
+

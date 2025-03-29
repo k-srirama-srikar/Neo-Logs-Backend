@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"regexp"
 	"time"
-	"net/http"
+	// "net/http"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -161,39 +161,153 @@ func RegisterHandler(db *pgxpool.Pool) fiber.Handler {
 
 
 // GetUserProfileHandler retrieves user profile based on username
-func GetUserProfileHandler(db *pgxpool.Pool) fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		username := c.Params("username")
+// func GetUserProfileHandler(db *pgxpool.Pool) fiber.Handler {
+// 	return func(c *fiber.Ctx) error {
+// 		username := c.Params("username")
 
-		// Query to fetch user details from users and user_profiles tables
-		var user struct {
-			ID             int     `json:"id"`
-			Username       string  `json:"name"`
-			Email          string  `json:"email"`
-			FullName       *string `json:"full_name"`
-			Bio            *string `json:"bio"`
-			ProfilePicture *string `json:"profile_picture"`
-			Public         bool    `json:"public"`
-		}
+// 		// Query to fetch user details from users and user_profiles tables
+// 		var user struct {
+// 			ID             int     `json:"id"`
+// 			Username       string  `json:"name"`
+// 			Email          string  `json:"email"`
+// 			FullName       *string `json:"full_name"`
+// 			Bio            *string `json:"bio"`
+// 			ProfilePicture *string `json:"profile_picture"`
+// 			Public         bool    `json:"public"`
+// 		}
 
-		query := `
-			SELECT u.id, u.name, u.email, p.full_name, p.bio, p.profile_picture, p.public
-			FROM users u
-			LEFT JOIN user_profiles p ON u.id = p.user_id
-			WHERE u.name = $1
-		`
+// 		query := `
+// 			SELECT u.id, u.name, u.email, p.full_name, p.bio, p.profile_picture, p.public
+// 			FROM users u
+// 			LEFT JOIN user_profiles p ON u.id = p.user_id
+// 			WHERE u.name = $1
+// 		`
 
-		err := db.QueryRow(context.Background(), query, username).Scan(
-			&user.ID, &user.Username, &user.Email, &user.FullName,
-			&user.Bio, &user.ProfilePicture, &user.Public,
-		)
+// 		err := db.QueryRow(context.Background(), query, username).Scan(
+// 			&user.ID, &user.Username, &user.Email, &user.FullName,
+// 			&user.Bio, &user.ProfilePicture, &user.Public,
+// 		)
 
-		if err != nil {
-			fmt.Printf("Error fetching user profile: %v", err)
-			return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
-		}
+// 		if err != nil {
+// 			fmt.Printf("Error fetching user profile: %v", err)
+// 			return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
+// 		}
 
-		// Return user profile data as JSON
-		return c.JSON(user)
-	}
+// 		// Return user profile data as JSON
+// 		return c.JSON(user)
+// 	}
+// }
+
+
+
+// func GetUserProfile(db *pgxpool.Pool) fiber.Handler {
+// 	return func(c *fiber.Ctx) error {
+// 		username := c.Params("username")
+// 		authUserID, _ := c.Locals("user_id").(int) // Get logged-in user ID (if any)
+
+// 		var user struct {
+// 			ID        int    `json:"id"`
+// 			Username  string `json:"username"`
+// 			FullName  string `json:"full_name"`
+// 			Bio       string `json:"bio"`
+// 			Followers int    `json:"followers"`
+// 			Following int    `json:"following"`
+// 		}
+
+// 		query := `
+// 		SELECT u.id, u.name, up.full_name, up.bio,
+// 		       (SELECT COUNT(*) FROM followers WHERE following_id = u.id) AS followers,
+// 		       (SELECT COUNT(*) FROM followers WHERE follower_id = u.id) AS following
+// 		FROM users u
+// 		LEFT JOIN user_profiles up ON u.id = up.user_id
+// 		WHERE u.name = $1`
+// 		err := db.QueryRow(context.Background(), query, username).Scan(
+// 			&user.ID, &user.Username, &user.FullName, &user.Bio, &user.Followers, &user.Following,
+// 		)
+// 		if err != nil {
+// 			fmt.Printf("Error fetching user profile: %v\n", err)
+// 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
+// 		}
+
+// 		// Check if logged-in user is viewing their own profile
+// 		isOwner := authUserID == user.ID
+
+// 		return c.JSON(fiber.Map{
+// 			"user":     user,
+// 			"is_owner": isOwner,
+// 		})
+// 	}
+// }
+
+
+
+// func GetUserProfileHandler(db *pgxpool.Pool) fiber.Handler {
+//     return func(c *fiber.Ctx) error {
+//         username := c.Params("username")
+//         userID := c.Locals("userID").(int) // Extract from JWT
+
+//         var profile UserProfile
+//         err := db.QueryRow(context.Background(), `
+//             SELECT u.id, u.username, p.full_name, p.bio, p.profile_picture,
+//                    (SELECT COUNT(*) FROM followers WHERE following_id = u.id) AS followers,
+//                    (SELECT COUNT(*) FROM followers WHERE follower_id = u.id) AS following,
+//                    EXISTS (SELECT 1 FROM followers WHERE follower_id = $1 AND following_id = u.id) AS is_following
+//             FROM users u
+//             LEFT JOIN user_profiles p ON u.id = p.user_id
+//             WHERE u.username = $2`, userID, username).
+//             Scan(&profile.ID, &profile.Username, &profile.FullName, &profile.Bio, &profile.ProfilePicture, &profile.Followers, &profile.Following, &profile.IsFollowing)
+
+//         if err != nil {
+//             return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
+//         }
+
+//         return c.JSON(fiber.Map{"user": profile})
+//     }
+// }
+
+
+
+func GetUserProfile(db *pgxpool.Pool) fiber.Handler {
+    return func(c *fiber.Ctx) error {
+        username := c.Params("username")
+        userID, ok := c.Locals("userID").(int) // Extract from JWT
+
+        if !ok {
+            return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+        }
+
+        var profile struct {
+            ID             int     `json:"id"`
+            Username       string  `json:"username"`
+            FullName       *string `json:"full_name"`
+            Bio            *string `json:"bio"`
+            ProfilePicture *string `json:"profile_picture"`
+            Followers      int     `json:"followers"`
+            Following      int     `json:"following"`
+            IsFollowing    bool    `json:"is_following"`
+        }
+
+        err := db.QueryRow(context.Background(), `
+            SELECT u.id, u.name, p.full_name, p.bio, p.profile_picture,
+                   (SELECT COUNT(*) FROM followers WHERE following_id = u.id) AS followers,
+                   (SELECT COUNT(*) FROM followers WHERE follower_id = u.id) AS following,
+                   EXISTS (SELECT 1 FROM followers WHERE follower_id = $1 AND following_id = u.id) AS is_following
+            FROM users u
+            LEFT JOIN user_profiles p ON u.id = p.user_id
+            WHERE u.name = $2`, userID, username).
+            Scan(&profile.ID, &profile.Username, &profile.FullName, &profile.Bio, &profile.ProfilePicture, &profile.Followers, &profile.Following, &profile.IsFollowing)
+
+        if err != nil {
+			fmt.Printf("Error fetching user profile: %v\n", err)
+            return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
+        }
+
+        // Check if the logged-in user is viewing their own profile
+        isOwner := userID == profile.ID
+
+        return c.JSON(fiber.Map{
+            "user":     profile,
+            "is_owner": isOwner,  // true if the logged-in user is accessing their own profile
+        })
+    }
 }
