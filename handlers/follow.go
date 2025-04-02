@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"context"
+	"fmt"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -17,11 +19,19 @@ func FollowUserHandler(db *pgxpool.Pool) fiber.Handler {
 		if err := c.BodyParser(&req); err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
 		}
-
-		followerID := c.Locals("userID").(int) // Get logged-in user ID from JWT
+		fmt.Println(c.Locals("user_id"))
+		folID := c.Locals("user_id")
+		fmt.Println("folid",folID.(float64))
+		// followerIDFloat, ok := c.Locals("userID").(float64) // Get logged-in user ID from JWT the user id is stored as float
+		// if !ok {
+		// 	fmt.Printf("user_id type: %T, value: %v\n", c.Locals("user_id"), c.Locals("user_id")) // Debugging
+		// 	return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized: user_id not found or invalid type"})
+		// }
+		
+		var followerID = int(folID.(float64))
 		var followingID int
 
-		err := db.QueryRow(context.Background(), "SELECT id FROM users WHERE username = $1", req.Username).Scan(&followingID)
+		err := db.QueryRow(context.Background(), "SELECT id FROM users WHERE name = $1", req.Username).Scan(&followingID)
 		if err != nil {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
 		}
@@ -43,10 +53,16 @@ func UnfollowUserHandler(db *pgxpool.Pool) fiber.Handler {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
 		}
 
-		followerID := c.Locals("userID").(int)
+		fmt.Println(c.Locals("user_id"))
+
+		followerID, ok := c.Locals("user_id").(int)
+		if !ok {
+			fmt.Printf("user_id type: %T, value: %v\n", c.Locals("user_id"), c.Locals("user_id")) // Debugging
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized: user_id not found or invalid type"})
+		}
 		var followingID int
 
-		err := db.QueryRow(context.Background(), "SELECT id FROM users WHERE username = $1", req.Username).Scan(&followingID)
+		err := db.QueryRow(context.Background(), "SELECT id FROM users WHERE name = $1", req.Username).Scan(&followingID)
 		if err != nil {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
 		}
