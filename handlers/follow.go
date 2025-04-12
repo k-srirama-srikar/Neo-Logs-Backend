@@ -54,12 +54,18 @@ func UnfollowUserHandler(db *pgxpool.Pool) fiber.Handler {
 		}
 
 		fmt.Println(c.Locals("user_id"))
+		folID := c.Locals("user_id")
+		fmt.Println("folid",folID.(float64))
 
-		followerID, ok := c.Locals("user_id").(int)
-		if !ok {
-			fmt.Printf("user_id type: %T, value: %v\n", c.Locals("user_id"), c.Locals("user_id")) // Debugging
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized: user_id not found or invalid type"})
-		}
+
+		// followerID, ok := c.Locals("user_id").(int)
+		// if !ok {
+		// 	fmt.Printf("user_id type: %T, value: %v\n", c.Locals("user_id"), c.Locals("user_id")) // Debugging
+		// 	return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized: user_id not found or invalid type"})
+		// }
+		// var followingID int
+
+		var followerID = int(folID.(float64))
 		var followingID int
 
 		err := db.QueryRow(context.Background(), "SELECT id FROM users WHERE name = $1", req.Username).Scan(&followingID)
