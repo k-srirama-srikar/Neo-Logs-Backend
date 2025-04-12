@@ -56,13 +56,14 @@ func ExtractUserID(c *fiber.Ctx) error {
 	// If no token is present, allow anonymous access
 	if userToken == nil {
 		fmt.Println("DEBUG: No JWT token found, proceeding as anonymous user")
+		c.Locals("user_id", nil)
 		return c.Next()
 	}
 
 	fmt.Println(c.Locals("user"))
-	if userToken == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized 23"})
-	}
+	// if userToken == nil {
+	// 	return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized 23"})
+	// }
 
 	// Convert userToken to JWT claims
 	claims, ok := userToken.(*jwt.Token)

@@ -112,3 +112,6 @@ CREATE TABLE IF NOT EXISTS comments (
     depth INT DEFAULT 0, -- Depth of comment (0 = top-level, 1 = reply, etc.)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- GIN index to improve tag search
+CREATE IF NOT EXISTS INDEX idx_blog_tags ON blogs USING GIN(tags);

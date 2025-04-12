@@ -81,3 +81,102 @@ func UnfollowUserHandler(db *pgxpool.Pool) fiber.Handler {
 		return c.JSON(fiber.Map{"message": "Unfollowed successfully"})
 	}
 }
+
+
+
+// backend/handlers/user.go
+func GetFollowersList(db *pgxpool.Pool) fiber.Handler {
+    return func(c *fiber.Ctx) error {
+        username := c.Params("username")
+		fmt.Println("jgsdskgnrg ",username)
+
+        query := `
+            SELECT u.id, u.name, p.full_name, p.profile_picture
+            FROM followers f
+            JOIN users u ON u.id = f.follower_id
+            LEFT JOIN user_profiles p ON p.user_id = u.id
+            WHERE f.following_id = (SELECT id FROM users WHERE name = $1)
+        `
+
+        rows, err := db.Query(context.Background(), query, username)
+        if err != nil {
+			fmt.Println("some error")
+            return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+                "error": "Failed to fetch followers",
+            })
+        }
+        defer rows.Close()
+
+        var followers []map[string]interface{}
+        for rows.Next() {
+            var id int
+            var name string
+            var fullName, profilePic *string
+
+            if err := rows.Scan(&id, &name, &fullName, &profilePic); err != nil {
+                continue
+            }
+
+            followers = append(followers, fiber.Map{
+                "id":               id,
+                "username":         name,
+                "full_name":        fullName,
+                "profile_picture":  profilePic,
+            })
+        }
+
+        return c.JSON(fiber.Map{
+            "followers": followers,
+        })
+    }
+}
+
+
+
+
+// backend/handlers/user.go
+func GetFollowingList(db *pgxpool.Pool) fiber.Handler {
+    return func(c *fiber.Ctx) error {
+        username := c.Params("username")
+		fmt.Println("jgsdskgnrg ",username)
+
+        query := `
+            SELECT u.id, u.name, p.full_name, p.profile_picture
+            FROM followers f
+            JOIN users u ON u.id = f.following_id
+            LEFT JOIN user_profiles p ON p.user_id = u.id
+            WHERE f.follower_id = (SELECT id FROM users WHERE name = $1)
+        `
+
+        rows, err := db.Query(context.Background(), query, username)
+        if err != nil {
+			fmt.Println("some error")
+            return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+                "error": "Failed to fetch followers",
+            })
+        }
+        defer rows.Close()
+
+        var followers []map[string]interface{}
+        for rows.Next() {
+            var id int
+            var name string
+            var fullName, profilePic *string
+
+            if err := rows.Scan(&id, &name, &fullName, &profilePic); err != nil {
+                continue
+            }
+
+            followers = append(followers, fiber.Map{
+                "id":               id,
+                "username":         name,
+                "full_name":        fullName,
+                "profile_picture":  profilePic,
+            })
+        }
+
+        return c.JSON(fiber.Map{
+            "followers": followers,
+        })
+    }
+}
