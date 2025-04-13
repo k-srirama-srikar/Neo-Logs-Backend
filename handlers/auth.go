@@ -369,12 +369,12 @@ func GetUserProfile(db *pgxpool.Pool) fiber.Handler {
             }
         }
 
-		fmt.Printf("User ID: %v, Profile ID: %d, Is Following: %v\n", userID, profile.ID, profile.IsFollowing)
+		fmt.Printf("\nUser ID: %v, Profile ID: %d, Is Following: %v\n", userID, profile.ID, profile.IsFollowing)
 
 
         // Determine if logged-in user is viewing their own profile
         isOwner :=  userID == profile.ID
-
+		fmt.Println("Is owner: ",isOwner)
         return c.JSON(fiber.Map{
             "user":     profile,
             "is_owner": isOwner,  // true if the logged-in user is accessing their own profile

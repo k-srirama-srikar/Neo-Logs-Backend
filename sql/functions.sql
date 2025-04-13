@@ -114,4 +114,4 @@ CREATE TABLE IF NOT EXISTS comments (
 );
 
 -- GIN index to improve tag search
-CREATE IF NOT EXISTS INDEX idx_blog_tags ON blogs USING GIN(tags);
+CREATE INDEX IF NOT EXISTS idx_blog_tags ON blogs USING GIN(tags);
