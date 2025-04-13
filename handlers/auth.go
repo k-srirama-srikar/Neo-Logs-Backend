@@ -322,6 +322,7 @@ func GetUserProfile(db *pgxpool.Pool) fiber.Handler {
 		// Get userID from JWT (if available)
         var userID int
 		uid := c.Locals("user_id")
+		fmt.Println("uid", uid)
 		if uid!=nil{
 		userID = int(uid.(float64))}else{
 			userID=0
@@ -330,7 +331,7 @@ func GetUserProfile(db *pgxpool.Pool) fiber.Handler {
         //     convertedID := int(uid)
         //     userID = &convertedID
         // }
-
+		fmt.Println("gjhnghrjedrg hello")
         var profile struct {
             ID             int     `json:"id"`
             Username       string  `json:"username"`

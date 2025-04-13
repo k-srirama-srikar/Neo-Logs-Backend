@@ -25,17 +25,11 @@ func SetupRoutes(app *fiber.App, db *pgxpool.Pool) {
 
 	public := app.Group("/api")
 	public.Use(middleware.ExtractUserID)
-	public.Get("/users/:username/followers", handlers.GetFollowersList(db))
+	// public.Use(middleware.JWTMiddleware())
+	public.Get("/users/:username/followers", middleware.ExtractUserID, handlers.GetFollowersList(db))
 	public.Get("/users/:username/following", handlers.GetFollowingList(db))
-	// Protected Routes
-	authRoutes := app.Group("/api")
-	authRoutes.Use(middleware.JWTMiddleware()) // Apply JWT middleware first
-	authRoutes.Use(middleware.ExtractUserID)   // Extract user ID
-
-	public.Get("/users/:username", handlers.GetUserProfile(db))
-	authRoutes.Post("/follow", middleware.JWTMiddleware(), handlers.FollowUserHandler(db))
-	authRoutes.Post("/unfollow", middleware.JWTMiddleware(), handlers.UnfollowUserHandler(db))
-
+	public.Get("/users/:username", middleware.ExtractUserID, handlers.GetUserProfile(db))
+	
 	// Endpoint	Method	Description
 	// /api/blogs	POST	Create a new blog
 	// /api/blogs	GET	Get all public blogs
@@ -48,11 +42,21 @@ func SetupRoutes(app *fiber.App, db *pgxpool.Pool) {
 
 	blog := app.Group("/api/blogs")
 	blog.Get("/", handlers.GetAllBlogs(db))
+	blog.Get("/drafts/users/:username", middleware.JWTMiddleware(), middleware.ExtractUserID, handlers.GetDraftsByUsername(db))
+	blog.Get("/users/:username", middleware.ExtractUserID, handlers.GetBlogsByUsername(db))
 	blog.Get("/:id", middleware.ExtractUserID, handlers.GetBlogByID(db))
-	blog.Get("/user/:username", middleware.ExtractUserID, handlers.GetBlogsByUsername(db))
-
+	
 	blog.Post("/", middleware.JWTMiddleware(), middleware.ExtractUserID, handlers.CreateBlogHandler(db))
 	blog.Put("/:id", middleware.JWTMiddleware(), middleware.ExtractUserID, handlers.UpdateBlog(db))
 	blog.Delete("/:id", middleware.JWTMiddleware(), middleware.ExtractUserID, handlers.DeleteBlog(db))
+	
+	// Protected Routes
+	authRoutes := app.Group("/api")
+	authRoutes.Use(middleware.JWTMiddleware()) // Apply JWT middleware first
+	authRoutes.Use(middleware.ExtractUserID)   // Extract user ID
+
+	authRoutes.Post("/follow", middleware.JWTMiddleware(), handlers.FollowUserHandler(db))
+	authRoutes.Post("/unfollow", middleware.JWTMiddleware(), handlers.UnfollowUserHandler(db))
+
 
 }

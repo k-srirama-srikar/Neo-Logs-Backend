@@ -140,25 +140,25 @@ func GetBlogByID(db *pgxpool.Pool) fiber.Handler {
 func GetBlogsByUsername(db *pgxpool.Pool) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		username := c.Params("username")
-		requesterID, _ := c.Locals("user_id").(float64)
-
+		// requesterID, _ := c.Locals("user_id").(float64)
+		fmt.Println("teda teda happening")
 		var ownerID int
-		err := db.QueryRow(context.Background(), `SELECT id FROM users WHERE username = $1`, username).Scan(&ownerID)
+		err := db.QueryRow(context.Background(), `SELECT id FROM users WHERE name = $1`, username).Scan(&ownerID)
 		if err != nil {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
 		}
 
-		showAll := requesterID == float64(ownerID)
+		// showAll := requesterID == float64(ownerID)
 
 		query := `
 			SELECT blogs.id, blogs.user_id, users.name, blogs.title, blogs.content, blogs.tags, blogs.created_at, blogs.visibility
 			FROM blogs
 			JOIN users ON blogs.user_id = users.id
-			WHERE users.username = $1`
+			WHERE users.name = $1`
 
-		if !showAll {
+		// if !showAll {
 			query += " AND blogs.visibility = TRUE AND blogs.status = 'published'"
-		}
+		// }
 
 		rows, err := db.Query(context.Background(), query, username)
 		if err != nil {
@@ -244,3 +244,48 @@ func DeleteBlog(db *pgxpool.Pool) fiber.Handler {
 	}
 }
 
+func GetDraftsByUsername(db *pgxpool.Pool) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		username := c.Params("username")
+		requesterID, _ := c.Locals("user_id").(float64)
+		// fmt.Println("teda teda happening")
+		var ownerID int
+		err := db.QueryRow(context.Background(), `SELECT id FROM users WHERE name = $1`, username).Scan(&ownerID)
+		if err != nil {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
+		}
+
+		showAll := requesterID == float64(ownerID)
+
+		query := `
+			SELECT blogs.id, blogs.user_id, users.name, blogs.title, blogs.content, blogs.tags, blogs.created_at, blogs.visibility
+			FROM blogs
+			JOIN users ON blogs.user_id = users.id
+			WHERE users.name = $1
+			AND blogs.visibility = false AND blogs.status = 'draft'`
+
+		if !showAll {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Error fetching drafts"})
+		}
+
+		rows, err := db.Query(context.Background(), query, username)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Error fetching blogs"})
+		}
+		defer rows.Close()
+
+		var blogs []BlogResponse
+		for rows.Next() {
+			var blog BlogResponse
+			var tags []string
+			err := rows.Scan(&blog.ID, &blog.UserID, &blog.Username, &blog.Title, &blog.Content, &tags, &blog.CreatedAt, &blog.Visibility)
+			if err != nil {
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Error parsing blog"})
+			}
+			blog.Tags = tags
+			blogs = append(blogs, blog)
+		}
+
+		return c.JSON(blogs)
+	}
+}
