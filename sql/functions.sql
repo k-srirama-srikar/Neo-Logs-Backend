@@ -65,7 +65,8 @@ CREATE TABLE IF NOT EXISTS user_profiles (
     profile_picture VARCHAR(255),
     public BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    overview TEXT
 );
 
 
@@ -80,8 +81,8 @@ CREATE TABLE IF NOT EXISTS followers (
 CREATE OR REPLACE FUNCTION create_user_profile()
 RETURNS TRIGGER AS $$
 BEGIN
-    INSERT INTO user_profiles (user_id, full_name, bio, profile_picture, public)
-    VALUES (NEW.id, '', '', 'https://neologs.vercel.app/pfp1.jpg', TRUE);
+    INSERT INTO user_profiles (user_id, full_name, bio, profile_picture, public, overview)
+    VALUES (NEW.id, '', '', 'https://neologs.vercel.app/pfp1.jpg', TRUE, '');
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;

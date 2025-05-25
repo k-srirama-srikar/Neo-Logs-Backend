@@ -46,10 +46,15 @@ func SetupRoutes(app *fiber.App, db *pgxpool.Pool) {
 	blog.Get("/users/:username", middleware.ExtractUserID, handlers.GetBlogsByUsername(db))
 	blog.Get("/:id", middleware.ExtractUserID, handlers.GetBlogByID(db))
 	
+	blog.Post("/comments/:id", middleware.JWTMiddleware(), middleware.ExtractUserID, handlers.CreateCommentHandler(db))
+	blog.Get("/comments/:id", middleware.ExtractUserID, handlers.GetCommentsHandler(db))
+	app.Delete("/api/comments/:id", middleware.JWTMiddleware(), middleware.ExtractUserID, handlers.DeleteCommentHandler(db))
+
 	blog.Post("/", middleware.JWTMiddleware(), middleware.ExtractUserID, handlers.CreateBlogHandler(db))
 	blog.Put("/:id", middleware.JWTMiddleware(), middleware.ExtractUserID, handlers.UpdateBlog(db))
 	blog.Delete("/:id", middleware.JWTMiddleware(), middleware.ExtractUserID, handlers.DeleteBlog(db))
 	
+
 	// Protected Routes
 	authRoutes := app.Group("/api")
 	authRoutes.Use(middleware.JWTMiddleware()) // Apply JWT middleware first
