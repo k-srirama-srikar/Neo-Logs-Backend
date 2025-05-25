@@ -2,10 +2,12 @@ package handlers
 
 import (
 	"context"
-	"github.com/gofiber/fiber/v2"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"fmt"
 	"strconv"
 	"time"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // Struct for comment input
@@ -17,12 +19,15 @@ type CommentInput struct {
 // POST /api/blogs/:id/comments
 func CreateCommentHandler(db *pgxpool.Pool) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		blogID, err := strconv.Atoi(c.Params("id"))
+		fmt.Println("hello??")
+		blgID, err := strconv.ParseFloat(c.Params("id"), 64)
 		if err != nil {
 			return fiber.NewError(fiber.StatusBadRequest, "Invalid blog ID")
 		}
 
-		userID := c.Locals("user_id").(int)
+		var blogID = int(blgID)
+
+		userID :=  int(c.Locals("user_id").(float64))
 
 		var input CommentInput
 		if err := c.BodyParser(&input); err != nil {
@@ -54,41 +59,129 @@ func CreateCommentHandler(db *pgxpool.Pool) fiber.Handler {
 
 
 
+// type Comment struct {
+// 	ID        int        `json:"id"`
+// 	UserID    int        `json:"user_id"`
+// 	Content   string     `json:"content"`
+// 	ParentID  *int       `json:"parent_comment_id"`
+// 	Depth     int        `json:"depth"`
+// 	CreatedAt time.Time  `json:"created_at"`
+// }
+
+// func GetCommentsHandler(db *pgxpool.Pool) fiber.Handler {
+// 	return func(c *fiber.Ctx) error {
+// 		blogID, err := strconv.Atoi(c.Params("id"))
+// 		if err != nil {
+// 			return fiber.NewError(fiber.StatusBadRequest, "Invalid blog ID")
+// 		}
+
+// 		rows, err := db.Query(context.Background(),
+// 			`SELECT id, user_id, content, parent_comment_id, depth, created_at
+// 			 FROM comments WHERE blog_id=$1 ORDER BY created_at ASC`, blogID)
+// 		if err != nil {
+// 			return fiber.NewError(fiber.StatusInternalServerError, "Failed to fetch comments")
+// 		}
+// 		defer rows.Close()
+
+// 		var comments []Comment
+// 		for rows.Next() {
+// 			var cmt Comment
+// 			if err := rows.Scan(&cmt.ID, &cmt.UserID, &cmt.Content, &cmt.ParentID, &cmt.Depth, &cmt.CreatedAt); err != nil {
+// 				return fiber.NewError(fiber.StatusInternalServerError, "Scan error")
+// 			}
+// 			comments = append(comments, cmt)
+// 		}
+// 		return c.JSON(comments)
+// 	}
+// }
+
+
+
 type Comment struct {
-	ID        int        `json:"id"`
-	UserID    int        `json:"user_id"`
-	Content   string     `json:"content"`
-	ParentID  *int       `json:"parent_comment_id"`
-	Depth     int        `json:"depth"`
-	CreatedAt time.Time  `json:"created_at"`
+	ID             int        `json:"id"`
+	UserID         int        `json:"user_id"`
+	UserName       string     `json:"user_name"`
+	ProfilePicture string     `json:"profile_picture"`
+	Content        string     `json:"content"`
+	ParentID       *int       `json:"parent_comment_id"`
+	Depth          int        `json:"depth"`
+	CreatedAt      time.Time  `json:"created_at"`
+	Children       []Comment  `json:"children"` // For nesting
 }
+
 
 func GetCommentsHandler(db *pgxpool.Pool) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		blogID, err := strconv.Atoi(c.Params("id"))
+		fmt.Println("heleoooooo?")
+		blgID, err := strconv.ParseFloat(c.Params("id"), 64)
 		if err != nil {
 			return fiber.NewError(fiber.StatusBadRequest, "Invalid blog ID")
 		}
 
-		rows, err := db.Query(context.Background(),
-			`SELECT id, user_id, content, parent_comment_id, depth, created_at
-			 FROM comments WHERE blog_id=$1 ORDER BY created_at ASC`, blogID)
+		var blogID = int(blgID)
+
+		rows, err := db.Query(context.Background(), `
+			SELECT c.id, c.user_id, u.name, p.profile_picture, c.content, c.parent_comment_id, c.depth, c.created_at
+			FROM comments c
+			JOIN users u ON c.user_id = u.id
+			JOIN user_profiles p ON u.id = p.user_id
+			WHERE c.blog_id = $1
+			ORDER BY c.created_at ASC`, blogID)
 		if err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, "Failed to fetch comments")
 		}
 		defer rows.Close()
 
-		var comments []Comment
+		// commentMap := make(map[int]*Comment)
+		// fmt.Println(commentMap)
+		// var rootComments []Comment
+		// fmt.Println(rows)
+		// for rows.Next() {
+		// 	var cmt Comment
+		// 	if err := rows.Scan(&cmt.ID, &cmt.UserID, &cmt.UserName, &cmt.ProfilePicture, &cmt.Content, &cmt.ParentID, &cmt.Depth, &cmt.CreatedAt); err != nil {
+		// 		return fiber.NewError(fiber.StatusInternalServerError, "Scan error")
+		// 	}
+		// 	cmt.Children = []Comment{}
+		// 	commentMap[cmt.ID] = &cmt
+
+		// 	if cmt.ParentID == nil {
+		// 		rootComments = append(rootComments, cmt)
+		// 	} else {
+		// 		parent := commentMap[*cmt.ParentID]
+		// 		fmt.Println("parent", parent)
+		// 		if parent != nil {
+		// 			parent.Children = append(parent.Children, cmt)
+		// 		}
+		// 	}
+		// }
+		// fmt.Println("root ",rootComments)
+		// return c.JSON(rootComments)
+		commentMap := make(map[int]*Comment)
+		var rootComments []*Comment
+
 		for rows.Next() {
 			var cmt Comment
-			if err := rows.Scan(&cmt.ID, &cmt.UserID, &cmt.Content, &cmt.ParentID, &cmt.Depth, &cmt.CreatedAt); err != nil {
+			if err := rows.Scan(&cmt.ID, &cmt.UserID, &cmt.UserName, &cmt.ProfilePicture, &cmt.Content, &cmt.ParentID, &cmt.Depth, &cmt.CreatedAt); err != nil {
 				return fiber.NewError(fiber.StatusInternalServerError, "Scan error")
 			}
-			comments = append(comments, cmt)
+			cmt.Children = []Comment{}
+			commentMap[cmt.ID] = &cmt
+
+			if cmt.ParentID == nil {
+				rootComments = append(rootComments, &cmt)
+			} else {
+				parent := commentMap[*cmt.ParentID]
+				if parent != nil {
+					parent.Children = append(parent.Children, cmt)
+				}
+			}
 		}
-		return c.JSON(comments)
+
+		return c.JSON(rootComments)
+
 	}
 }
+
 
 
 

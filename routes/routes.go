@@ -30,6 +30,7 @@ func SetupRoutes(app *fiber.App, db *pgxpool.Pool) {
 	public.Get("/users/:username/following", handlers.GetFollowingList(db))
 	public.Get("/users/:username", middleware.ExtractUserID, handlers.GetUserProfile(db))
 	
+	public.Get("/me", middleware.JWTMiddleware(), handlers.MeHandler)
 	// Endpoint	Method	Description
 	// /api/blogs	POST	Create a new blog
 	// /api/blogs	GET	Get all public blogs
@@ -46,8 +47,8 @@ func SetupRoutes(app *fiber.App, db *pgxpool.Pool) {
 	blog.Get("/users/:username", middleware.ExtractUserID, handlers.GetBlogsByUsername(db))
 	blog.Get("/:id", middleware.ExtractUserID, handlers.GetBlogByID(db))
 	
-	blog.Post("/comments/:id", middleware.JWTMiddleware(), middleware.ExtractUserID, handlers.CreateCommentHandler(db))
-	blog.Get("/comments/:id", middleware.ExtractUserID, handlers.GetCommentsHandler(db))
+	app.Post("/api/comments/:id", middleware.JWTMiddleware(), middleware.ExtractUserID, handlers.CreateCommentHandler(db))
+	app.Get("/api/comments/:id", middleware.ExtractUserID, handlers.GetCommentsHandler(db))
 	app.Delete("/api/comments/:id", middleware.JWTMiddleware(), middleware.ExtractUserID, handlers.DeleteCommentHandler(db))
 
 	blog.Post("/", middleware.JWTMiddleware(), middleware.ExtractUserID, handlers.CreateBlogHandler(db))
