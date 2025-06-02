@@ -5,9 +5,15 @@ import (
 	"backend/middleware"
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"fmt"
 )
 
 func SetupRoutes(app *fiber.App, db *pgxpool.Pool) {
+
+	app.Use(func(c *fiber.Ctx) error {
+    fmt.Printf("REQ: %s %s\n", c.Method(), c.Path())
+    return c.Next()
+})
 	// Auth routes
 	// app.Post("/api/login", handlers.LoginHandler(db))
 	// app.Post("/api/register", handlers.RegisterHandler(db))
@@ -41,26 +47,31 @@ func SetupRoutes(app *fiber.App, db *pgxpool.Pool) {
 
 	// Add additional routes for posts, comments, etc.
 
+	profileGroup := app.Group("/api/profile")
+	profileGroup.Put("/users/:username", middleware.JWTMiddleware(), middleware.ExtractUserID, handlers.UpdateUserProfile(db))
+
+
 	blog := app.Group("/api/blogs")
 	blog.Get("/", handlers.GetAllBlogs(db))
 	blog.Get("/drafts/users/:username", middleware.JWTMiddleware(), middleware.ExtractUserID, handlers.GetDraftsByUsername(db))
 	blog.Get("/users/:username", middleware.ExtractUserID, handlers.GetBlogsByUsername(db))
 	blog.Get("/:id", middleware.ExtractUserID, handlers.GetBlogByID(db))
 	
+	app.Get("/api/comments/users/:username", middleware.ExtractUserID, handlers.GetUserCommentsHandler(db))
 	app.Post("/api/comments/:id", middleware.JWTMiddleware(), middleware.ExtractUserID, handlers.CreateCommentHandler(db))
 	app.Get("/api/comments/:id", middleware.ExtractUserID, handlers.GetCommentsHandler(db))
 	app.Delete("/api/comments/:id", middleware.JWTMiddleware(), middleware.ExtractUserID, handlers.DeleteCommentHandler(db))
-
+	
 	blog.Post("/", middleware.JWTMiddleware(), middleware.ExtractUserID, handlers.CreateBlogHandler(db))
 	blog.Put("/:id", middleware.JWTMiddleware(), middleware.ExtractUserID, handlers.UpdateBlog(db))
 	blog.Delete("/:id", middleware.JWTMiddleware(), middleware.ExtractUserID, handlers.DeleteBlog(db))
 	
-
+	
 	// Protected Routes
 	authRoutes := app.Group("/api")
 	authRoutes.Use(middleware.JWTMiddleware()) // Apply JWT middleware first
 	authRoutes.Use(middleware.ExtractUserID)   // Extract user ID
-
+	
 	authRoutes.Post("/follow", middleware.JWTMiddleware(), handlers.FollowUserHandler(db))
 	authRoutes.Post("/unfollow", middleware.JWTMiddleware(), handlers.UnfollowUserHandler(db))
 
