@@ -337,6 +337,7 @@ func GetUserProfile(db *pgxpool.Pool) fiber.Handler {
             Username       string  `json:"username"`
             FullName       *string `json:"full_name"`
             Bio            *string `json:"bio"`
+			Overview            *string `json:"overview"`
             ProfilePicture *string `json:"profile_picture"`
             Followers      int     `json:"followers"`
             Following      int     `json:"following"`
@@ -344,7 +345,7 @@ func GetUserProfile(db *pgxpool.Pool) fiber.Handler {
         }
 
         query := `
-            SELECT u.id, u.name, p.full_name, p.bio, p.profile_picture,
+            SELECT u.id, u.name, p.full_name, p.bio, p.overview, p.profile_picture,
                    (SELECT COUNT(*) FROM followers WHERE following_id = u.id) AS followers,
                    (SELECT COUNT(*) FROM followers WHERE follower_id = u.id) AS following
             FROM users u
@@ -352,7 +353,7 @@ func GetUserProfile(db *pgxpool.Pool) fiber.Handler {
             WHERE u.name = $1`
         
         err := db.QueryRow(context.Background(), query, username).
-            Scan(&profile.ID, &profile.Username, &profile.FullName, &profile.Bio, &profile.ProfilePicture, &profile.Followers, &profile.Following)
+            Scan(&profile.ID, &profile.Username, &profile.FullName, &profile.Bio, &profile.Overview, &profile.ProfilePicture, &profile.Followers, &profile.Following)
         
         if err != nil {
             fmt.Printf("Error fetching user profile: %v\n", err)
