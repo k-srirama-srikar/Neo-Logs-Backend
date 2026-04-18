@@ -18,12 +18,15 @@ func LoadEnv() {
 
 // ConnectDB creates and returns a PostgreSQL connection pool.
 func ConnectDB() (*pgxpool.Pool, error) {
-	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s",
-		os.Getenv("DB_USER"),
-		os.Getenv("DB_PASSWORD"),
-		os.Getenv("DB_HOST"),
-		os.Getenv("DB_PORT"),
-		os.Getenv("DB_NAME"),
-	)
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		dsn = fmt.Sprintf("postgres://%s:%s@%s:%s/%s",
+			os.Getenv("DB_USER"),
+			os.Getenv("DB_PASSWORD"),
+			os.Getenv("DB_HOST"),
+			os.Getenv("DB_PORT"),
+			os.Getenv("DB_NAME"),
+		)
+	}
 	return pgxpool.New(context.Background(), dsn)
 }

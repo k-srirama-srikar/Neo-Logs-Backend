@@ -65,9 +65,15 @@ func main() {
     // Initialize Fiber app
     app := fiber.New()
 
+    // Determine frontend URL
+    frontendURL := os.Getenv("FRONTEND_URL")
+    if frontendURL == "" {
+        frontendURL = "http://localhost:3000" // Default for local development
+    }
+
     // Enable CORS (you can configure the options if needed)
     app.Use(cors.New(cors.Config{
-        AllowOrigins: "http://localhost:3000",  // Allow requests from frontend origin
+        AllowOrigins: frontendURL,  // Allow requests from frontend origin
         AllowMethods: "GET,POST,PUT,DELETE",   // Allow these HTTP methods
         AllowHeaders: "Origin, Content-Type, Accept, Authorization", // Allow necessary headers
     }))
